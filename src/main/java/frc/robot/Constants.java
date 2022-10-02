@@ -44,7 +44,7 @@ public final class Constants {
             m_port = port;
         }
 
-        public int getPort() {
+        public int get() {
             return m_port;
         }
     }

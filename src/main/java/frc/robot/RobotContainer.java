@@ -5,10 +5,11 @@
 package frc.robot;
 
 import edu.wpi.first.wpilibj.XboxController;
-import frc.robot.commands.DriveUsingXboxController;
-import frc.robot.subsystems.RomiDrivetrain;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.WaitCommand;
+import frc.robot.commands.DriveUsingXboxController;
+import frc.robot.subsystems.RSL;
+import frc.robot.subsystems.RomiDrivetrain;
 
 /**
  * This class is where the bulk of the robot should be declared. Since Command-based is a
@@ -21,6 +22,8 @@ public class RobotContainer {
   private final XboxController m_xboxController = new XboxController(0);
 
   // The robot's subsystems and commands are defined here...
+  @SuppressWarnings("unused")
+  private final RSL m_rsl = new RSL();
   private final RomiDrivetrain m_romiDrivetrain = new RomiDrivetrain();
 
   private final Command m_autoCommand = new WaitCommand(1.0);
