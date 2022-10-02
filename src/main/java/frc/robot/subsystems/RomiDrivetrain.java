@@ -4,7 +4,10 @@
 
 package frc.robot.subsystems;
 
+import edu.wpi.first.util.datalog.DoubleLogEntry;
+import edu.wpi.first.wpilibj.DataLogManager;
 import edu.wpi.first.wpilibj.Encoder;
+import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.drive.DifferentialDrive;
 import edu.wpi.first.wpilibj.motorcontrol.Spark;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
@@ -28,6 +31,10 @@ public class RomiDrivetrain extends SubsystemBase {
   // Set up the differential drive controller
   private final DifferentialDrive m_diffDrive = new DifferentialDrive(m_leftMotor, m_rightMotor);
 
+  // Set up the data loggers
+  private final DoubleLogEntry m_xaxisSpeedLogger = new DoubleLogEntry(DataLogManager.getLog(), "/subsystem/RomiDrivetrain/arcadeDrive/xaxisSpeed");
+  private final DoubleLogEntry m_zaxisRotationLogger = new DoubleLogEntry(DataLogManager.getLog(), "/subsystem/RomiDrivetrain/arcadeDrive/zaxisRotation");
+
   /** Creates a new RomiDrivetrain. */
   public RomiDrivetrain() {
     // Use inches as unit for encoder distances
@@ -40,6 +47,11 @@ public class RomiDrivetrain extends SubsystemBase {
   }
 
   public void arcadeDrive(double xaxisSpeed, double zaxisRotate) {
+    long timestamp = (long)(Timer.getFPGATimestamp() * 1000000.0);
+
+    m_xaxisSpeedLogger.append(xaxisSpeed, timestamp);
+    m_zaxisRotationLogger.append(zaxisRotate, timestamp);
+
     m_diffDrive.arcadeDrive(xaxisSpeed, zaxisRotate);
   }
 

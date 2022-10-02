@@ -4,6 +4,13 @@
 
 package frc.robot;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+
+import edu.wpi.first.wpilibj.DataLogManager;
+import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.wpilibj.Filesystem;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
@@ -25,6 +32,20 @@ public class Robot extends TimedRobot {
    */
   @Override
   public void robotInit() {
+    // Start the data logger and enable logging of DriverStation control data.
+    Path logDir = Filesystem.getOperatingDirectory().toPath().resolve("logs").toAbsolutePath();
+
+    try {
+      Files.createDirectories(logDir);
+      DataLogManager.start(logDir.toString());
+    } catch (IOException e) {
+      System.err.format("Could not create directory '%1$s': $2$s\n", logDir, e);
+      DataLogManager.start();
+    }
+
+
+    DriverStation.startDataLog(DataLogManager.getLog(), false);
+    
     // Instantiate our RobotContainer.  This will perform all our button bindings, and put our
     // autonomous chooser on the dashboard.
     m_robotContainer = new RobotContainer();

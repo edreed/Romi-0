@@ -6,6 +6,8 @@ package frc.robot.commands;
 
 import frc.robot.subsystems.RomiDrivetrain;
 import edu.wpi.first.math.MathUtil;
+import edu.wpi.first.util.datalog.StringLogEntry;
+import edu.wpi.first.wpilibj.DataLogManager;
 import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj2.command.CommandBase;
 
@@ -13,6 +15,7 @@ import edu.wpi.first.wpilibj2.command.CommandBase;
 public class DriveUsingXboxController extends CommandBase {
   private final RomiDrivetrain m_romiDrivetrain;
   private final XboxController m_xboxController;
+  private final StringLogEntry m_commandStateLogger = new StringLogEntry(DataLogManager.getLog(), "/command/DriveUsingXboxController/state");
 
   /**
    * Creates a new DriveUsingXboxController.
@@ -30,7 +33,7 @@ public class DriveUsingXboxController extends CommandBase {
   // Called when the command is initially scheduled.
   @Override
   public void initialize() {
-
+    m_commandStateLogger.append("initialize");
   }
 
   // Called every time the scheduler runs while the command is scheduled.
@@ -46,6 +49,7 @@ public class DriveUsingXboxController extends CommandBase {
   @Override
   public void end(boolean interrupted) {
     m_romiDrivetrain.stopMotor();
+    m_commandStateLogger.append("end");
   }
 
   // Returns true when the command should end.
