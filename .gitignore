@@ -165,3 +165,6 @@ simgui*.json
 # Network Tables configuration files
 networktables.ini
 networktables.ini.bak
+
+# SysId files
+.SysId/

@@ -89,8 +89,8 @@ public class RobotContainer {
       withPosition(0, 0).
       withSize(2, 3);
 
-    odometryLayout.addNumber("Y", () -> m_romiDrivetrain.getPose().getY());
     odometryLayout.addNumber("X", () -> m_romiDrivetrain.getPose().getX());
+    odometryLayout.addNumber("Y", () -> m_romiDrivetrain.getPose().getY());
     odometryLayout.add("Heading", new Sendable() {
       public void initSendable(SendableBuilder builder) {
         builder.setSmartDashboardType("Gyro");
