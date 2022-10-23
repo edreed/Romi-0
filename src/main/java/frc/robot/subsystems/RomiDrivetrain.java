@@ -4,28 +4,55 @@
 
 package frc.robot.subsystems;
 
+import edu.wpi.first.math.MathUtil;
+import edu.wpi.first.math.controller.PIDController;
+import edu.wpi.first.math.controller.SimpleMotorFeedforward;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.kinematics.ChassisSpeeds;
+import edu.wpi.first.math.kinematics.DifferentialDriveKinematics;
 import edu.wpi.first.math.kinematics.DifferentialDriveOdometry;
+import edu.wpi.first.math.kinematics.DifferentialDriveWheelSpeeds;
 import edu.wpi.first.wpilibj.Encoder;
-import edu.wpi.first.wpilibj.drive.DifferentialDrive;
 import edu.wpi.first.wpilibj.interfaces.Gyro;
 import edu.wpi.first.wpilibj.motorcontrol.Spark;
 import edu.wpi.first.wpilibj.romi.RomiGyro;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import frc.robot.RomiStatus;
 import frc.robot.Constants.DigitalInputPort;
 import frc.robot.Constants.PWMPort;
 
 public class RomiDrivetrain extends SubsystemBase {
   private static final double kCountsPerRevolution = 1440.0;
   private static final double kWheelDiameterMeters = 0.070; // 70 mm
+  private static final double kWheelTrackWidthMeters = 0.141; // 141 mm
+
+  // The theoretical max speed based on the published specs of no-load RPM
+  // is (150 RPM * 0.070m * π) / 60s = 0.5497787143782139. Set the max speed
+  // in code to something below that to ensure we can hit it.
+  public static final double kMaxSpeed = 0.5; // m/s
+
+  // The max angular speed can be determined by dividing max speed by the
+  // half the track width. (The track width can be thought of as the diameter
+  // of the circle inscribed by the two wheels when rotating in the opposite
+  // direction.)
+  public static final double kMaxAngularSpeed = (2 * kMaxSpeed) / kWheelTrackWidthMeters;
+
+  // The voltage produced by 6 1.2V NiMH batteries.
+  private static final double kMaxVoltage = 7.2;
+
+  // Feed forward constants.
+  private static final double kFeedForwardS = 1.0; // A guess
+  private static final double kFeedForwardV = kMaxVoltage / kMaxSpeed; // Theoretical value
+
+  // Wheel speed PID constants.
+  private static final double kWheelSpeedP = 1.0;
+  private static final double kWheelSpeedI = 0.0;
+  private static final double kWheelSpeedD = 0.0;
 
   // Set up the left and right motors.
   private final Spark m_leftMotor = new Spark(PWMPort.LeftMotor.get());
   private final Spark m_rightMotor = new Spark(PWMPort.RightMotor.get());
-
-  // Set up the differential drive controller
-  private final DifferentialDrive m_diffDrive = new DifferentialDrive(m_leftMotor, m_rightMotor);
 
   // Set up the encoders and gyro.
   private final Encoder m_leftEncoder = new Encoder(
@@ -36,8 +63,14 @@ public class RomiDrivetrain extends SubsystemBase {
       DigitalInputPort.RightEncoderB.get());
   private final Gyro m_gyro = new RomiGyro();
 
-  // Set up the differential drive odometry
+  // Set up the differential drive odometry.
   private final DifferentialDriveOdometry m_odometry = new DifferentialDriveOdometry(m_gyro.getRotation2d());
+
+  // Set up kinematics, PID controllers and feedforward.
+  private final DifferentialDriveKinematics m_kinematics = new DifferentialDriveKinematics(kWheelTrackWidthMeters);
+  private final PIDController m_leftSpeedPidController = new PIDController(kWheelSpeedP, kWheelSpeedI, kWheelSpeedD);
+  private final PIDController m_rightSpeedPidController = new PIDController(kWheelSpeedP, kWheelSpeedI, kWheelSpeedD);
+  private final SimpleMotorFeedforward m_feedforward = new SimpleMotorFeedforward(kFeedForwardS, kFeedForwardV);
 
   /** Creates a new RomiDrivetrain. */
   public RomiDrivetrain() {
@@ -50,12 +83,70 @@ public class RomiDrivetrain extends SubsystemBase {
     m_rightMotor.setInverted(true);
   }
 
-  public void arcadeDrive(double xaxisSpeed, double zaxisRotate) {
-    m_diffDrive.arcadeDrive(xaxisSpeed, zaxisRotate);
+  /**
+   * Drives the robot using arcade style of control.
+   * 
+   * @param xAxis The robot's speed along the x-axis relative to the robot frame.
+   *              The value is in the range [-1.0..1.0] representing a fraction of
+   *              the robot's maximum speed. A positive value results forward
+   *              motion.
+   * @param zAxis The robot's rotational speed around the z-axis. The value is in
+   *              the range [-1.0..1.0] representing a fraction of the robot's
+   *              maximum rotational speed. A positive value results in
+   *              counter-clockwise motion.
+   */
+  public void arcadeDrive(double xAxis, double zAxis) {
+    final double xSpeed = MathUtil.clamp(xAxis, -1.0, 1.0) * kMaxSpeed;
+    final double zRotation = MathUtil.clamp(zAxis, -1.0, 1.0) * kMaxAngularSpeed;
+
+    DifferentialDriveWheelSpeeds wheelSpeeds = m_kinematics.toWheelSpeeds(new ChassisSpeeds(xSpeed, 0, zRotation));
+
+    setWheelSpeeds(wheelSpeeds);
   }
 
+  /**
+   * Sets the desired wheel speeds.
+   * 
+   * @param wheelSpeeds The desired wheel speeds.
+   */
+  public void setWheelSpeeds(DifferentialDriveWheelSpeeds wheelSpeeds) {
+    final double leftFeedforward = m_feedforward.calculate(wheelSpeeds.leftMetersPerSecond);
+    final double rightFeedforward = m_feedforward.calculate(wheelSpeeds.rightMetersPerSecond);
+
+    final double leftOutput = m_leftSpeedPidController.calculate(
+        m_leftEncoder.getRate(), wheelSpeeds.leftMetersPerSecond);
+    final double rightOutput = m_rightSpeedPidController.calculate(
+        m_rightEncoder.getRate(), wheelSpeeds.rightMetersPerSecond);
+
+    setMotorVoltages(leftOutput + leftFeedforward, rightOutput + rightFeedforward);
+  }
+
+  /**
+   * Sets the voltage output of the left and right motor controllers. This method
+   * compensates for the current bus voltage to ensure that the desired voltage is
+   * output even if the battery voltage is below its maximum - highly useful when
+   * the voltage outputs are "meaningful" (e.g. they come from a feedforward
+   * calculation).
+   *
+   * <p>
+   * NOTE: This method *must* be called regularly in order for voltage
+   * compensation to work properly - unlike the ordinary set function, it is not
+   * "set it and forget it."
+   * 
+   * @param leftVoltage  The left voltage output.
+   * @param rightVoltage The right voltage output.
+   */
+  public void setMotorVoltages(double leftVoltage, double rightVoltage) {
+    double batteryVoltage = RomiStatus.getBatteryVoltage();
+
+    m_leftMotor.set(MathUtil.clamp(leftVoltage / batteryVoltage, -1.0, 1.0));
+    m_rightMotor.set(MathUtil.clamp(rightVoltage / batteryVoltage, -1.0, 1.0));
+  }
+
+  /** Stops the motors. */
   public void stopMotor() {
-    m_diffDrive.stopMotor();
+    m_leftMotor.stopMotor();
+    m_rightMotor.stopMotor();
   }
 
   /** Resets the initial position to the origin with a heading of 0°. */

@@ -37,7 +37,7 @@ public class DriveUsingXboxController extends CommandBase {
   @Override
   public void execute() {
     double speed = -MathUtil.applyDeadband(m_xboxController.getLeftY(), 0.05);
-    double rotation = MathUtil.applyDeadband(m_xboxController.getRightX(), 0.05);
+    double rotation = -MathUtil.applyDeadband(m_xboxController.getRightX(), 0.05);
  
     m_romiDrivetrain.arcadeDrive(speed, rotation);
   }

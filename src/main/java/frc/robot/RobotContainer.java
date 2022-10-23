@@ -6,7 +6,6 @@ package frc.robot;
 
 import edu.wpi.first.util.sendable.Sendable;
 import edu.wpi.first.util.sendable.SendableBuilder;
-import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj.shuffleboard.BuiltInLayouts;
 import edu.wpi.first.wpilibj.shuffleboard.BuiltInWidgets;
@@ -86,7 +85,7 @@ public class RobotContainer {
       withPosition(2, 0).
       withSize(2, 3);
     
-    statusLayout.addNumber("Battery", () -> RobotController.getBatteryVoltage()).
+    statusLayout.addNumber("Battery", () -> RomiStatus.getBatteryVoltage()).
       withWidget(BuiltInWidgets.kVoltageView).
       withProperties(Map.of("Max", 7.2));
   }
