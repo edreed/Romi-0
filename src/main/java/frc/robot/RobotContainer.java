@@ -19,6 +19,8 @@ import frc.robot.subsystems.RSL;
 import frc.robot.subsystems.RomiDrivetrain;
 import java.util.Map;
 
+import org.nrg948.preferences.RobotPreferences;
+
 /**
  * This class is where the bulk of the robot should be declared. Since Command-based is a
  * "declarative" paradigm, very little robot logic should actually be handled in the {@link Robot}
@@ -66,6 +68,8 @@ public class RobotContainer {
 
   /** Initializes the Romi Shuffleboard tab. */
   private void initShuffleboard() {
+    RobotPreferences.addShuffleBoardTab();
+    
     ShuffleboardTab romiTab = Shuffleboard.getTab("Romi");
 
     ShuffleboardLayout odometryLayout = romiTab.getLayout("Odometry", BuiltInLayouts.kList).
@@ -87,6 +91,6 @@ public class RobotContainer {
     
     statusLayout.addNumber("Battery", () -> RomiStatus.getBatteryVoltage()).
       withWidget(BuiltInWidgets.kVoltageView).
-      withProperties(Map.of("Max", 7.2));
+      withProperties(Map.of("Max", RomiStatus.getMaxBatteryVoltage()));
   }
 }
