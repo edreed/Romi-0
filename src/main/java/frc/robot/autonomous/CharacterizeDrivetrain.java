@@ -6,6 +6,7 @@ package frc.robot.autonomous;
 
 import com.nrg948.autonomous.AutonomousCommand;
 
+import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj2.command.CommandBase;
 import frc.robot.subsystems.RomiDrivetrain;
@@ -14,6 +15,9 @@ import frc.robot.sysid.SysIdDrivetrainLogger;
 
 @AutonomousCommand(name = "Characterize Drivetrain")
 public final class CharacterizeDrivetrain extends CommandBase {
+  private static final double kDefaultNTUpdateRate = 0.100;
+  private static final double kHighFrequencyNTUpdateRate = 0.010;
+
   private final RomiDrivetrain m_drivetrain;
   private final SysIdDrivetrainLogger m_logger;
 
@@ -33,6 +37,7 @@ public final class CharacterizeDrivetrain extends CommandBase {
   @Override
   public void initialize() {
     m_logger.init();
+    // NetworkTableInstance.getDefault().setUpdateRate(kHighFrequencyNTUpdateRate);
   }
 
   // Called every time the scheduler runs while the command is scheduled.
@@ -49,6 +54,7 @@ public final class CharacterizeDrivetrain extends CommandBase {
   // Called once the command ends or is interrupted.
   @Override
   public void end(boolean interrupted) {
+    // NetworkTableInstance.getDefault().setUpdateRate(kDefaultNTUpdateRate);
     m_drivetrain.stopMotor();
     m_logger.sendData();
   }

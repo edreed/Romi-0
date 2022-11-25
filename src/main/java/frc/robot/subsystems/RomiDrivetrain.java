@@ -17,14 +17,17 @@ import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.kinematics.DifferentialDriveKinematics;
 import edu.wpi.first.math.kinematics.DifferentialDriveOdometry;
 import edu.wpi.first.math.kinematics.DifferentialDriveWheelSpeeds;
+import edu.wpi.first.math.trajectory.TrajectoryConfig;
+import edu.wpi.first.math.trajectory.constraint.DifferentialDriveVoltageConstraint;
 import edu.wpi.first.wpilibj.Encoder;
 import edu.wpi.first.wpilibj.interfaces.Gyro;
 import edu.wpi.first.wpilibj.motorcontrol.Spark;
+import edu.wpi.first.wpilibj2.command.RamseteCommand;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants.DigitalInputPort;
 import frc.robot.Constants.PWMPort;
-import frc.robot.sensors.RomiGyro;
 import frc.robot.RomiStatus;
+import frc.robot.sensors.RomiGyro;
 
 @RobotPreferencesLayout(groupName = "Drivetrain", column = 2, row = 0, width = 2, height = 3)
 public class RomiDrivetrain extends SubsystemBase {
@@ -32,10 +35,19 @@ public class RomiDrivetrain extends SubsystemBase {
   private static final double kWheelDiameterMeters = 0.070; // 70 mm
   private static final double kWheelTrackWidthMeters = 0.141; // 141 mm
 
+  // The theoretical values are described by
+  // https://www.chiefdelphi.com/uploads/default/original/3X/f/7/f79d24101e6f1487e76099774e4ba60683e86cda.pdf.
+
   // The theoretical max speed based on the published specs of no-load RPM
   // is (150 RPM * 0.070m * π) / 60s = 0.5497787143782139. Set the max speed
   // in code to something below that to ensure we can hit it.
-  public static final double kMaxSpeed = 0.5; // m/s
+  public static final double kMaxSpeed = 0.43982; // m/s
+
+  // The theoretical max acceleration based on the published stall torque
+  // specs is (2 * 2 motors * 0.1765387958333325 Nm) / (0.070 m * 0.447 kg) = 
+  // 22.568078725897411313518696069032. Set the max acceleration in code to
+  // something below that to ensure we can hit it.
+  public static final double kMaxAcceleration = 18.05446; // m/s/s
 
   // The max angular speed can be determined by dividing max speed by the
   // half the track width. (The track width can be thought of as the diameter
@@ -44,11 +56,17 @@ public class RomiDrivetrain extends SubsystemBase {
   public static final double kMaxAngularSpeed = (2 * kMaxSpeed) / kWheelTrackWidthMeters;
 
   // Feed forward constants.
+  public static final double kDefaultKS = 0.2; // A guess
+  public static final double kSafetyMargin = 0.0001; // A cushion of voltage to account for rounding in preferences storage.
+  public static final double kDefaultKV = (RomiStatus.getMaxBatteryVoltage() - kDefaultKS - kSafetyMargin) / kMaxSpeed; // Theoretical value
+  public static final double kDefaultKA = (RomiStatus.getMaxBatteryVoltage() - kDefaultKS - kSafetyMargin) / kMaxAcceleration; // Theoretical value
+
   @RobotPreferencesValue
-  public static final DoubleValue kFeedForwardS = new DoubleValue("Drivetrain", "Feed Forward S", 1.0); // A guess
+  public static final DoubleValue kFeedForwardS = new DoubleValue("Drivetrain", "Feed Forward S", kDefaultKS); // A guess
   @RobotPreferencesValue
-  public static final DoubleValue kFeedForwardV = new DoubleValue(
-      "Drivetrain", "Feed Forward V", RomiStatus.getMaxBatteryVoltage() / kMaxSpeed); // Theoretical value
+  public static final DoubleValue kFeedForwardV = new DoubleValue("Drivetrain", "Feed Forward V", kDefaultKV); // Theoretical value
+  @RobotPreferencesValue
+  public static final DoubleValue kFeedForwardA = new DoubleValue("Drivetrain", "Feed Forward A", kDefaultKA); // Theoretical value
 
   // Wheel speed PID constants.
   @RobotPreferencesValue
@@ -82,7 +100,7 @@ public class RomiDrivetrain extends SubsystemBase {
   private final PIDController m_rightSpeedPidController = new PIDController(
       kWheelSpeedP.getValue(), kWheelSpeedI.getValue(), kWheelSpeedD.getValue());
   private final SimpleMotorFeedforward m_feedforward = new SimpleMotorFeedforward(
-      kFeedForwardS.getValue(), kFeedForwardV.getValue());
+      kFeedForwardS.getValue(), kFeedForwardV.getValue(), kFeedForwardA.getValue());
 
   /** Creates a new RomiDrivetrain. */
   public RomiDrivetrain() {
@@ -122,13 +140,23 @@ public class RomiDrivetrain extends SubsystemBase {
    * @param wheelSpeeds The desired wheel speeds.
    */
   public void setWheelSpeeds(DifferentialDriveWheelSpeeds wheelSpeeds) {
-    final double leftFeedforward = m_feedforward.calculate(wheelSpeeds.leftMetersPerSecond);
-    final double rightFeedforward = m_feedforward.calculate(wheelSpeeds.rightMetersPerSecond);
+    setWheelSpeeds(wheelSpeeds.leftMetersPerSecond, wheelSpeeds.rightMetersPerSecond);
+  }
+
+  /**
+   * Sets the desired wheel speeds.
+   * 
+   * @param leftWheelSpeed  The left wheel speed.
+   * @param rightWheelSpeed The right wheel speed.
+   */
+  public void setWheelSpeeds(double leftWheelSpeed, double rightWheelSpeed) {
+    final double leftFeedforward = m_feedforward.calculate(leftWheelSpeed);
+    final double rightFeedforward = m_feedforward.calculate(rightWheelSpeed);
 
     final double leftOutput = m_leftSpeedPidController.calculate(
-        m_leftEncoder.getRate(), wheelSpeeds.leftMetersPerSecond);
+        m_leftEncoder.getRate(), leftWheelSpeed);
     final double rightOutput = m_rightSpeedPidController.calculate(
-        m_rightEncoder.getRate(), wheelSpeeds.rightMetersPerSecond);
+        m_rightEncoder.getRate(), rightWheelSpeed);
 
     setMotorVoltages(leftOutput + leftFeedforward, rightOutput + rightFeedforward);
   }
@@ -255,6 +283,30 @@ public class RomiDrivetrain extends SubsystemBase {
    */
   public Pose2d getPose() {
     return m_odometry.getPoseMeters();
+  }
+
+  /**
+   * Returns the drivetrain kinematics.
+   * 
+   * @return The drivetrain kinematics.
+   */
+  public DifferentialDriveKinematics getKinematics() {
+    return m_kinematics;
+  }
+
+  /**
+   * Returns a {@link TrajectoryConfig} object used to generate trajectories for
+   * the {@link RamseteCommand}.
+   * 
+   * @return The trajectory generation config for this drivetrain.
+   */
+  public TrajectoryConfig getTrajectoryConfig() {
+    DifferentialDriveVoltageConstraint voltageConstraint = new DifferentialDriveVoltageConstraint(
+        m_feedforward, m_kinematics, RomiStatus.getMaxBatteryVoltage());
+
+    return new TrajectoryConfig(kMaxSpeed, kMaxAcceleration)
+        .setKinematics(m_kinematics)
+        .addConstraint(voltageConstraint);
   }
 
   @Override

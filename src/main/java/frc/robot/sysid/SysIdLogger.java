@@ -7,8 +7,10 @@ package frc.robot.sysid;
 import java.util.ArrayList;
 import java.util.Arrays;
 
+import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import frc.robot.RomiStatus;
 
 /** An abstract base class enabling SysId integration. */
 public abstract class SysIdLogger {
@@ -68,7 +70,9 @@ public abstract class SysIdLogger {
      * @return The motor voltage.
      */
     public double getMotorVoltage() {
-        return m_motorVoltage;
+        final double batteryVoltage = RomiStatus.getBatteryVoltage();
+
+        return MathUtil.clamp(m_motorVoltage, -batteryVoltage, batteryVoltage);
     }
 
     /**
