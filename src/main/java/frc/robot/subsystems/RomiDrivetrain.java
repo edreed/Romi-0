@@ -4,6 +4,10 @@
 
 package frc.robot.subsystems;
 
+import org.nrg948.preferences.RobotPreferencesLayout;
+import org.nrg948.preferences.RobotPreferencesValue;
+import org.nrg948.preferences.RobotPreferences.DoubleValue;
+
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.controller.SimpleMotorFeedforward;
@@ -22,6 +26,7 @@ import frc.robot.RomiStatus;
 import frc.robot.Constants.DigitalInputPort;
 import frc.robot.Constants.PWMPort;
 
+@RobotPreferencesLayout(groupName = "Drivetrain", column = 2, row = 0, width = 2, height = 3)
 public class RomiDrivetrain extends SubsystemBase {
   private static final double kCountsPerRevolution = 1440.0;
   private static final double kWheelDiameterMeters = 0.070; // 70 mm
@@ -38,17 +43,20 @@ public class RomiDrivetrain extends SubsystemBase {
   // direction.)
   public static final double kMaxAngularSpeed = (2 * kMaxSpeed) / kWheelTrackWidthMeters;
 
-  // The voltage produced by 6 1.2V NiMH batteries.
-  private static final double kMaxVoltage = 7.2;
-
   // Feed forward constants.
-  private static final double kFeedForwardS = 1.0; // A guess
-  private static final double kFeedForwardV = kMaxVoltage / kMaxSpeed; // Theoretical value
+  @RobotPreferencesValue
+  public static final DoubleValue kFeedForwardS = new DoubleValue("Drivetrain", "Feed Forward S", 1.0); // A guess
+  @RobotPreferencesValue
+  public static final DoubleValue kFeedForwardV = new DoubleValue(
+      "Drivetrain", "Feed Forward V", RomiStatus.getMaxBatteryVoltage() / kMaxSpeed); // Theoretical value
 
   // Wheel speed PID constants.
-  private static final double kWheelSpeedP = 1.0;
-  private static final double kWheelSpeedI = 0.0;
-  private static final double kWheelSpeedD = 0.0;
+  @RobotPreferencesValue
+  public static final DoubleValue kWheelSpeedP = new DoubleValue("Drivetrain", "Wheel Speed P", 1.0);
+  @RobotPreferencesValue
+  public static final DoubleValue kWheelSpeedI = new DoubleValue("Drivetrain", "Wheel Speed I", 0.0);
+  @RobotPreferencesValue
+  public static final DoubleValue kWheelSpeedD = new DoubleValue("Drivetrain", "Wheel Speed D", 0.0);
 
   // Set up the left and right motors.
   private final Spark m_leftMotor = new Spark(PWMPort.LeftMotor.get());
@@ -68,9 +76,12 @@ public class RomiDrivetrain extends SubsystemBase {
 
   // Set up kinematics, PID controllers and feedforward.
   private final DifferentialDriveKinematics m_kinematics = new DifferentialDriveKinematics(kWheelTrackWidthMeters);
-  private final PIDController m_leftSpeedPidController = new PIDController(kWheelSpeedP, kWheelSpeedI, kWheelSpeedD);
-  private final PIDController m_rightSpeedPidController = new PIDController(kWheelSpeedP, kWheelSpeedI, kWheelSpeedD);
-  private final SimpleMotorFeedforward m_feedforward = new SimpleMotorFeedforward(kFeedForwardS, kFeedForwardV);
+  private final PIDController m_leftSpeedPidController = new PIDController(
+      kWheelSpeedP.getValue(), kWheelSpeedI.getValue(), kWheelSpeedD.getValue());
+  private final PIDController m_rightSpeedPidController = new PIDController(
+      kWheelSpeedP.getValue(), kWheelSpeedI.getValue(), kWheelSpeedD.getValue());
+  private final SimpleMotorFeedforward m_feedforward = new SimpleMotorFeedforward(
+      kFeedForwardS.getValue(), kFeedForwardV.getValue());
 
   /** Creates a new RomiDrivetrain. */
   public RomiDrivetrain() {
@@ -145,8 +156,14 @@ public class RomiDrivetrain extends SubsystemBase {
 
   /** Stops the motors. */
   public void stopMotor() {
+    m_leftMotor.set(0);
+    m_rightMotor.set(0);
+
     m_leftMotor.stopMotor();
     m_rightMotor.stopMotor();
+
+    m_leftSpeedPidController.reset();
+    m_rightSpeedPidController.reset();
   }
 
   /** Resets the initial position to the origin with a heading of 0°. */
@@ -170,14 +187,32 @@ public class RomiDrivetrain extends SubsystemBase {
   }
 
   /**
-   * Returns the heading of the robot.
+   * Returns the heading of the robot rounded between [-180..180] degrees.
    * 
-   * @return The heading of the robot in degress using the NWU axis convention.
-   *         An increasing value indicates rotation in the counter-clockwise
-   *         direction.
+   * @return The heading of the robot using the NWU axis convention. An increasing
+   *         value indicates rotation in the counter-clockwise direction.
    */
   public Rotation2d getHeading() {
     return m_odometry.getPoseMeters().getRotation();
+  }
+
+  /**
+   * Returns the continuous heading of the robot as reported by the gyro.
+   * 
+   * @return The heading of the robot using the NWU axis convention. An increasing
+   *         value indicates rotation in the counter-clockwise direction.
+   */
+  public Rotation2d getGyroAngle() {
+    return m_gyro.getRotation2d();
+  }
+
+  /**
+   * Returns the rate of rotation of the gyro.
+   * 
+   * @return The rate of rotation of the gyro.
+   */
+  public double getGyroAngularRate() {
+    return -m_gyro.getRate();
   }
 
   /**
@@ -190,12 +225,30 @@ public class RomiDrivetrain extends SubsystemBase {
   }
 
   /**
+   * Returns the velocity of the left wheel.
+   * 
+   * @return The velocity of the left wheel in meters per second.
+   */
+  public double getLeftVelocity() {
+    return m_leftEncoder.getRate();
+  }
+
+  /**
    * Returns the distance travelled by the right wheel in meters.
    * 
    * @return The distance travelled by the right wheel in meters.
    */
   public double getRightDistanceMeters() {
     return m_rightEncoder.getDistance();
+  }
+
+  /**
+   * Returns the velocity of the right wheel.
+   * 
+   * @return The velocity of the right wheel in meters per second.
+   */
+  public double getRightVelocity() {
+    return m_rightEncoder.getRate();
   }
 
   /**
