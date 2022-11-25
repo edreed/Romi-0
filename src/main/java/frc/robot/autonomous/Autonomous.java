@@ -21,11 +21,15 @@ public final class Autonomous {
    * Returns a {@link SendableChooser} object enabling interactive selection of
    * autonomous commands annotated with {@link AutonomousCommand}.
    * 
-   * @param container The {@link RobotContainer} instance of the robot.
+   * @param <T> The container type.
+   * @param container An object passed to the constructor of the automonous
+   *                  commands providing access to the robot subsystems. This
+   *                  is typically an instance of {@link RobotContainer} but
+   *                  could be another type that manages the subsystems.
    * 
    * @return A {@link SendableChooser} object containing the autonomous commands.
    */
-  public static SendableChooser<Command> getChooser(RobotContainer container) {
+  public static <T> SendableChooser<Command> getChooser(T container) {
     Reflections reflections = new Reflections("frc.robot");
     SendableChooser<Command> chooser = new SendableChooser<>();
 
@@ -34,7 +38,7 @@ public final class Autonomous {
         .forEach(cc -> {
           try {
             AutonomousCommand annotation = cc.getAnnotation(AutonomousCommand.class);
-            Command command = (Command) cc.getConstructor(RobotContainer.class).newInstance(container);
+            Command command = (Command) cc.getConstructor(container.getClass()).newInstance(container);
 
             chooser.addOption(annotation.name(), command);
 
