@@ -4,9 +4,9 @@
 
 package frc.robot.subsystems;
 
+import org.nrg948.preferences.RobotPreferences.DoubleValue;
 import org.nrg948.preferences.RobotPreferencesLayout;
 import org.nrg948.preferences.RobotPreferencesValue;
-import org.nrg948.preferences.RobotPreferences.DoubleValue;
 
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.controller.PIDController;
@@ -17,14 +17,17 @@ import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.kinematics.DifferentialDriveKinematics;
 import edu.wpi.first.math.kinematics.DifferentialDriveOdometry;
 import edu.wpi.first.math.kinematics.DifferentialDriveWheelSpeeds;
+import edu.wpi.first.math.trajectory.TrajectoryConfig;
+import edu.wpi.first.math.trajectory.constraint.DifferentialDriveVoltageConstraint;
 import edu.wpi.first.wpilibj.Encoder;
 import edu.wpi.first.wpilibj.interfaces.Gyro;
 import edu.wpi.first.wpilibj.motorcontrol.Spark;
 import edu.wpi.first.wpilibj.romi.RomiGyro;
+import edu.wpi.first.wpilibj2.command.RamseteCommand;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
-import frc.robot.RomiStatus;
 import frc.robot.Constants.DigitalInputPort;
 import frc.robot.Constants.PWMPort;
+import frc.robot.RomiStatus;
 
 @RobotPreferencesLayout(groupName = "Drivetrain", column = 2, row = 0, width = 2, height = 3)
 public class RomiDrivetrain extends SubsystemBase {
@@ -36,6 +39,8 @@ public class RomiDrivetrain extends SubsystemBase {
   // is (150 RPM * 0.070m * π) / 60s = 0.5497787143782139. Set the max speed
   // in code to something below that to ensure we can hit it.
   public static final double kMaxSpeed = 0.5; // m/s
+
+  public static final double kMaxAcceleration = 1.0; // m/s/s - a guess
 
   // The max angular speed can be determined by dividing max speed by the
   // half the track width. (The track width can be thought of as the diameter
@@ -49,6 +54,9 @@ public class RomiDrivetrain extends SubsystemBase {
   @RobotPreferencesValue
   public static final DoubleValue kFeedForwardV = new DoubleValue(
       "Drivetrain", "Feed Forward V", RomiStatus.getMaxBatteryVoltage() / kMaxSpeed); // Theoretical value
+  @RobotPreferencesValue
+  public static final DoubleValue kFeedForwardA = new DoubleValue(
+    "Drivetrain", "Feed Forward A", RomiStatus.getMaxBatteryVoltage() / kMaxAcceleration); // Theoretical value
 
   // Wheel speed PID constants.
   @RobotPreferencesValue
@@ -81,7 +89,7 @@ public class RomiDrivetrain extends SubsystemBase {
   private final PIDController m_rightSpeedPidController = new PIDController(
       kWheelSpeedP.getValue(), kWheelSpeedI.getValue(), kWheelSpeedD.getValue());
   private final SimpleMotorFeedforward m_feedforward = new SimpleMotorFeedforward(
-      kFeedForwardS.getValue(), kFeedForwardV.getValue());
+      kFeedForwardS.getValue(), kFeedForwardV.getValue(), kFeedForwardA.getValue());
 
   /** Creates a new RomiDrivetrain. */
   public RomiDrivetrain() {
@@ -121,13 +129,23 @@ public class RomiDrivetrain extends SubsystemBase {
    * @param wheelSpeeds The desired wheel speeds.
    */
   public void setWheelSpeeds(DifferentialDriveWheelSpeeds wheelSpeeds) {
-    final double leftFeedforward = m_feedforward.calculate(wheelSpeeds.leftMetersPerSecond);
-    final double rightFeedforward = m_feedforward.calculate(wheelSpeeds.rightMetersPerSecond);
+    setWheelSpeeds(wheelSpeeds.leftMetersPerSecond, wheelSpeeds.rightMetersPerSecond);
+  }
+
+  /**
+   * Sets the desired wheel speeds.
+   * 
+   * @param leftWheelSpeed  The left wheel speed.
+   * @param rightWheelSpeed The right wheel speed.
+   */
+  public void setWheelSpeeds(double leftWheelSpeed, double rightWheelSpeed) {
+    final double leftFeedforward = m_feedforward.calculate(leftWheelSpeed);
+    final double rightFeedforward = m_feedforward.calculate(rightWheelSpeed);
 
     final double leftOutput = m_leftSpeedPidController.calculate(
-        m_leftEncoder.getRate(), wheelSpeeds.leftMetersPerSecond);
+        m_leftEncoder.getRate(), leftWheelSpeed);
     final double rightOutput = m_rightSpeedPidController.calculate(
-        m_rightEncoder.getRate(), wheelSpeeds.rightMetersPerSecond);
+        m_rightEncoder.getRate(), rightWheelSpeed);
 
     setMotorVoltages(leftOutput + leftFeedforward, rightOutput + rightFeedforward);
   }
@@ -258,6 +276,30 @@ public class RomiDrivetrain extends SubsystemBase {
    */
   public Pose2d getPose() {
     return m_odometry.getPoseMeters();
+  }
+
+  /**
+   * Returns the drivetrain kinematics.
+   * 
+   * @return The drivetrain kinematics.
+   */
+  public DifferentialDriveKinematics getKinematics() {
+    return m_kinematics;
+  }
+
+  /**
+   * Returns a {@link TrajectoryConfig} object used to generate trajectories for
+   * the {@link RamseteCommand}.
+   * 
+   * @return The trajectory generation config for this drivetrain.
+   */
+  public TrajectoryConfig getTrajectoryConfig() {
+    DifferentialDriveVoltageConstraint voltageConstraint = new DifferentialDriveVoltageConstraint(
+        m_feedforward, m_kinematics, RomiStatus.getMaxBatteryVoltage());
+
+    return new TrajectoryConfig(kMaxSpeed, kMaxAcceleration)
+        .setKinematics(m_kinematics)
+        .addConstraint(voltageConstraint);
   }
 
   @Override
