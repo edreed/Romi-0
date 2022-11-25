@@ -4,6 +4,10 @@
 
 package frc.robot;
 
+import java.util.Map;
+
+import org.nrg948.preferences.RobotPreferences;
+
 import edu.wpi.first.util.sendable.Sendable;
 import edu.wpi.first.util.sendable.SendableBuilder;
 import edu.wpi.first.wpilibj.XboxController;
@@ -12,14 +16,12 @@ import edu.wpi.first.wpilibj.shuffleboard.BuiltInWidgets;
 import edu.wpi.first.wpilibj.shuffleboard.Shuffleboard;
 import edu.wpi.first.wpilibj.shuffleboard.ShuffleboardLayout;
 import edu.wpi.first.wpilibj.shuffleboard.ShuffleboardTab;
+import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj2.command.Command;
-import edu.wpi.first.wpilibj2.command.WaitCommand;
+import frc.robot.autonomous.Autonomous;
 import frc.robot.commands.DriveUsingXboxController;
 import frc.robot.subsystems.RSL;
 import frc.robot.subsystems.RomiDrivetrain;
-import java.util.Map;
-
-import org.nrg948.preferences.RobotPreferences;
 
 /**
  * This class is where the bulk of the robot should be declared. Since Command-based is a
@@ -28,6 +30,7 @@ import org.nrg948.preferences.RobotPreferences;
  * subsystems, commands, and button mappings) should be declared here.
  */
 public class RobotContainer {
+
   // Operator interface object are defined here...
   private final XboxController m_xboxController = new XboxController(0);
 
@@ -36,16 +39,27 @@ public class RobotContainer {
   private final RSL m_rsl = new RSL();
   private final RomiDrivetrain m_romiDrivetrain = new RomiDrivetrain();
 
-  private final Command m_autoCommand = new WaitCommand(1.0);
+  private final SendableChooser<Command> m_autonomousChooser;
 
   /** The container for the robot. Contains subsystems, OI devices, and commands. */
   public RobotContainer() {
+    m_autonomousChooser = Autonomous.getChooser(this);
+
     // Configure the button bindings
     configureButtonBindings();
 
     m_romiDrivetrain.setDefaultCommand(new DriveUsingXboxController(m_romiDrivetrain, m_xboxController));
 
     initShuffleboard();
+  }
+
+  /**
+   * Returns the drivetrain subsystem.
+   * 
+   * @return The drivetrain subsystem.
+   */
+  public RomiDrivetrain getDrivetrain() {
+    return m_romiDrivetrain;
   }
 
   /**
@@ -62,8 +76,7 @@ public class RobotContainer {
    * @return the command to run in autonomous
    */
   public Command getAutonomousCommand() {
-    // An ExampleCommand will run in autonomous
-    return m_autoCommand;
+    return m_autonomousChooser.getSelected();
   }
 
   /** Initializes the Romi Shuffleboard tab. */
@@ -85,12 +98,18 @@ public class RobotContainer {
       }
     });
 
-    ShuffleboardLayout statusLayout = romiTab.getLayout("Status", BuiltInLayouts.kList).
-      withPosition(2, 0).
-      withSize(2, 3);
+    ShuffleboardLayout statusLayout = romiTab.getLayout("Status", BuiltInLayouts.kList)
+      .withPosition(2, 0)
+      .withSize(2, 3);
     
-    statusLayout.addNumber("Battery", () -> RomiStatus.getBatteryVoltage()).
-      withWidget(BuiltInWidgets.kVoltageView).
-      withProperties(Map.of("Max", RomiStatus.getMaxBatteryVoltage()));
+    statusLayout.addNumber("Battery", () -> RomiStatus.getBatteryVoltage())
+      .withWidget(BuiltInWidgets.kVoltageView)
+      .withProperties(Map.of("Max", RomiStatus.getMaxBatteryVoltage()));
+    
+    ShuffleboardLayout autonomousLayout = romiTab.getLayout("Autonomous", BuiltInLayouts.kList)
+      .withPosition(4, 0)
+      .withSize(2, 3);
+    
+      autonomousLayout.add("Command", m_autonomousChooser);
   }
 }
