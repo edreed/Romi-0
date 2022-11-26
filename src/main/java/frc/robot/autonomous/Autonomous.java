@@ -4,7 +4,8 @@
 
 package frc.robot.autonomous;
 
-import static org.reflections.scanners.Scanners.TypesAnnotated;
+import static org.reflections.scanners.Scanners.SubTypes;
+import static org.reflections.util.ReflectionUtilsPredicates.withAnnotation;
 
 import java.lang.reflect.InvocationTargetException;
 
@@ -21,7 +22,7 @@ public final class Autonomous {
    * Returns a {@link SendableChooser} object enabling interactive selection of
    * autonomous commands annotated with {@link AutonomousCommand}.
    * 
-   * @param <T> The container type.
+   * @param <T>       The container type.
    * @param container An object passed to the constructor of the automonous
    *                  commands providing access to the robot subsystems. This
    *                  is typically an instance of {@link RobotContainer} but
@@ -32,28 +33,38 @@ public final class Autonomous {
   public static <T> SendableChooser<Command> getChooser(T container) {
     Reflections reflections = new Reflections("frc.robot");
     SendableChooser<Command> chooser = new SendableChooser<>();
+    Class<? extends Object> containerClass = container.getClass();
 
-    reflections.get(TypesAnnotated.with(AutonomousCommand.class).asClass())
+    reflections.get(SubTypes.of(Command.class).asClass().filter(withAnnotation(AutonomousCommand.class)))
         .stream()
         .forEach(cc -> {
           try {
             AutonomousCommand annotation = cc.getAnnotation(AutonomousCommand.class);
-            Command command = (Command) cc.getConstructor(container.getClass()).newInstance(container);
+            Command command = (Command) cc.getConstructor(containerClass).newInstance(container);
 
             chooser.addOption(annotation.name(), command);
 
             if (annotation.isDefault()) {
               chooser.setDefaultOption(annotation.name(), command);
             }
+          } catch (NoSuchMethodException e) {
+            System.err.printf(
+                "ERROR: Class %s does not define the public constructor: %s(%s)%n",
+                cc.getName(),
+                cc.getSimpleName(),
+                containerClass.getSimpleName());
+            e.printStackTrace();
           } catch (
               InstantiationException
               | IllegalAccessException
               | IllegalArgumentException
               | ClassCastException
               | InvocationTargetException
-              | NoSuchMethodException
               | SecurityException e) {
-            e.printStackTrace();
+                System.err.printf(
+                  "ERROR: An unexpected exception was caught while creating an instance of %s.%n",
+                  cc.getName());
+              e.printStackTrace();
           }
         });
 
