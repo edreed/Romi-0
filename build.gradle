@@ -38,7 +38,7 @@ dependencies {
 
     implementation 'org.reflections:reflections:0.10.2'
 
-    implementation 'org.nrg948:nrgcommon:2022.0.0'
+    implementation 'org.nrg948:nrgcommon:2022.0.1-SNAPSHOT'
 
     testImplementation 'junit:junit:4.13.1'
 }

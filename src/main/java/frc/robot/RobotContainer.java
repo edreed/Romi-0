@@ -7,6 +7,7 @@ package frc.robot;
 import java.util.Map;
 
 import org.nrg948.preferences.RobotPreferences;
+import org.nrg948.preferences.RobotPreferencesLayout;
 
 import edu.wpi.first.util.sendable.Sendable;
 import edu.wpi.first.util.sendable.SendableBuilder;
@@ -29,6 +30,7 @@ import frc.robot.subsystems.RomiDrivetrain;
  * periodic methods (other than the scheduler calls). Instead, the structure of the robot (including
  * subsystems, commands, and button mappings) should be declared here.
  */
+@RobotPreferencesLayout(groupName = "Preferences", column = 0, row = 2, width = 2, height = 2)
 public class RobotContainer {
 
   // Operator interface object are defined here...
