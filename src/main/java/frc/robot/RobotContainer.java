@@ -6,6 +6,7 @@ package frc.robot;
 
 import java.util.Map;
 
+import org.nrg948.autonomous.Autonomous;
 import org.nrg948.preferences.RobotPreferences;
 import org.nrg948.preferences.RobotPreferencesLayout;
 
@@ -19,7 +20,6 @@ import edu.wpi.first.wpilibj.shuffleboard.ShuffleboardLayout;
 import edu.wpi.first.wpilibj.shuffleboard.ShuffleboardTab;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj2.command.Command;
-import frc.robot.autonomous.Autonomous;
 import frc.robot.commands.DriveUsingXboxController;
 import frc.robot.subsystems.RSL;
 import frc.robot.subsystems.RomiDrivetrain;
@@ -45,7 +45,7 @@ public class RobotContainer {
 
   /** The container for the robot. Contains subsystems, OI devices, and commands. */
   public RobotContainer() {
-    m_autonomousChooser = Autonomous.getChooser(this);
+    m_autonomousChooser = Autonomous.getChooser(this, "frc.robot");
 
     // Configure the button bindings
     configureButtonBindings();
