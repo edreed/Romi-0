@@ -8,12 +8,12 @@ import org.nrg948.autonomous.AutonomousCommand;
 
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj2.command.WaitUntilCommand;
-import frc.robot.RobotContainer;
+import frc.robot.subsystems.Subsystems;
 
 /** An autonomous command that performs no action. */
 @AutonomousCommand(name = "Do Nothing", isDefault = true)
 public final class DoNothing extends WaitUntilCommand {
-    public DoNothing(RobotContainer container) {
+    public DoNothing(Subsystems subsystems) {
         super(() -> !DriverStation.isAutonomousEnabled());
     }
 }
