@@ -20,6 +20,7 @@ import edu.wpi.first.wpilibj.shuffleboard.ShuffleboardLayout;
 import edu.wpi.first.wpilibj.shuffleboard.ShuffleboardTab;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.button.JoystickButton;
 import frc.robot.commands.DriveUsingXboxController;
 import frc.robot.subsystems.Subsystems;
 
@@ -34,6 +35,8 @@ public class RobotContainer {
 
   // Operator interface object are defined here...
   private final XboxController m_xboxController = new XboxController(0);
+
+  private final JoystickButton m_menuButton = new JoystickButton(m_xboxController, XboxController.Button.kStart.value);
 
   // The robot's subsystems and commands are defined here...
   private final Subsystems m_subsystems = new Subsystems();
@@ -59,7 +62,9 @@ public class RobotContainer {
    * edu.wpi.first.wpilibj.Joystick} or {@link XboxController}), and then passing it to a {@link
    * edu.wpi.first.wpilibj2.command.button.JoystickButton}.
    */
-  private void configureButtonBindings() {}
+  private void configureButtonBindings() {
+    m_menuButton.whenPressed(() -> m_subsystems.drivetrain.resetPosition());
+  }
 
   /**
    * Use this to pass the autonomous command to the main {@link Robot} class.
