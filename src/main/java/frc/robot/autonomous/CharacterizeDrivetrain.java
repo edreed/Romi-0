@@ -8,8 +8,8 @@ import org.nrg948.autonomous.AutonomousCommand;
 
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj2.command.CommandBase;
-import frc.robot.RobotContainer;
 import frc.robot.subsystems.RomiDrivetrain;
+import frc.robot.subsystems.Subsystems;
 import frc.robot.sysid.SysIdDrivetrainLogger;
 
 @AutonomousCommand(name = "Characterize Drivetrain")
@@ -18,12 +18,10 @@ public final class CharacterizeDrivetrain extends CommandBase {
   private final SysIdDrivetrainLogger m_logger;
 
   /** Creates a new CharacterizeDrivetrain. */
-  public CharacterizeDrivetrain(RobotContainer container) {
-    final RomiDrivetrain drivetrain = container.getDrivetrain();
-
-    m_drivetrain = drivetrain;
-    m_logger = new SysIdDrivetrainLogger(drivetrain);
-    addRequirements(drivetrain);
+  public CharacterizeDrivetrain(Subsystems subsystems) {
+    m_drivetrain = subsystems.drivetrain;
+    m_logger = new SysIdDrivetrainLogger(m_drivetrain);
+    addRequirements(m_drivetrain);
   }
 
   @Override

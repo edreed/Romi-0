@@ -21,8 +21,7 @@ import edu.wpi.first.wpilibj.shuffleboard.ShuffleboardTab;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.commands.DriveUsingXboxController;
-import frc.robot.subsystems.RSL;
-import frc.robot.subsystems.RomiDrivetrain;
+import frc.robot.subsystems.Subsystems;
 
 /**
  * This class is where the bulk of the robot should be declared. Since Command-based is a
@@ -37,31 +36,21 @@ public class RobotContainer {
   private final XboxController m_xboxController = new XboxController(0);
 
   // The robot's subsystems and commands are defined here...
-  @SuppressWarnings("unused")
-  private final RSL m_rsl = new RSL();
-  private final RomiDrivetrain m_romiDrivetrain = new RomiDrivetrain();
+  private final Subsystems m_subsystems = new Subsystems();
 
   private final SendableChooser<Command> m_autonomousChooser;
 
   /** The container for the robot. Contains subsystems, OI devices, and commands. */
   public RobotContainer() {
-    m_autonomousChooser = Autonomous.getChooser(this, "frc.robot");
+    m_autonomousChooser = Autonomous.getChooser(m_subsystems, "frc.robot");
 
     // Configure the button bindings
     configureButtonBindings();
 
-    m_romiDrivetrain.setDefaultCommand(new DriveUsingXboxController(m_romiDrivetrain, m_xboxController));
+    m_subsystems.drivetrain.setDefaultCommand(
+      new DriveUsingXboxController(m_subsystems.drivetrain, m_xboxController));
 
     initShuffleboard();
-  }
-
-  /**
-   * Returns the drivetrain subsystem.
-   * 
-   * @return The drivetrain subsystem.
-   */
-  public RomiDrivetrain getDrivetrain() {
-    return m_romiDrivetrain;
   }
 
   /**
@@ -91,12 +80,12 @@ public class RobotContainer {
       withPosition(0, 0).
       withSize(2, 3);
 
-    odometryLayout.addNumber("X", () -> m_romiDrivetrain.getPose().getX());
-    odometryLayout.addNumber("Y", () -> m_romiDrivetrain.getPose().getY());
+    odometryLayout.addNumber("X", () -> m_subsystems.drivetrain.getPose().getX());
+    odometryLayout.addNumber("Y", () -> m_subsystems.drivetrain.getPose().getY());
     odometryLayout.add("Heading", new Sendable() {
       public void initSendable(SendableBuilder builder) {
         builder.setSmartDashboardType("Gyro");
-        builder.addDoubleProperty("Value", () -> -m_romiDrivetrain.getHeading().getDegrees(), null);
+        builder.addDoubleProperty("Value", () -> -m_subsystems.drivetrain.getHeading().getDegrees(), null);
       }
     });
 
