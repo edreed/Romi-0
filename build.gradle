@@ -14,7 +14,7 @@ def includeDesktopSupport = true
 repositories {
     mavenLocal()
     maven {
-        url = uri("https://maven.pkg.github.com/edreed/nrgcommon")
+        url = uri("https://maven.pkg.github.com/NRG948/nrgcommon")
         credentials {
             username = project.findProperty("gpr.user") ?: System.getenv("GITHUB_ACTOR")
             password = project.findProperty("gpr.key") ?: System.getenv("GITHUB_TOKEN")
@@ -38,7 +38,7 @@ dependencies {
 
     implementation 'org.reflections:reflections:0.10.2'
 
-    implementation 'org.nrg948:nrgcommon:2022.0.1-SNAPSHOT'
+    implementation 'com.nrg948:nrgcommon:2022.1.0'
 
     testImplementation 'junit:junit:4.13.1'
 }

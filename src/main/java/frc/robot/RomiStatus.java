@@ -4,9 +4,9 @@
 
 package frc.robot;
 
-import org.nrg948.preferences.RobotPreferencesLayout;
-import org.nrg948.preferences.RobotPreferencesValue;
-import org.nrg948.preferences.RobotPreferences.EnumValue;
+import com.nrg948.preferences.RobotPreferencesLayout;
+import com.nrg948.preferences.RobotPreferencesValue;
+import com.nrg948.preferences.RobotPreferences.EnumValue;
 
 import edu.wpi.first.networktables.NetworkTable;
 import edu.wpi.first.networktables.NetworkTableEntry;
