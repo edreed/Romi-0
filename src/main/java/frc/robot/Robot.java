@@ -4,7 +4,7 @@
 
 package frc.robot;
 
-import org.nrg948.preferences.RobotPreferences;
+import com.nrg948.preferences.RobotPreferences;
 
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj2.command.Command;

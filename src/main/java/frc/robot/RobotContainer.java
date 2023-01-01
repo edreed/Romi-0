@@ -6,9 +6,9 @@ package frc.robot;
 
 import java.util.Map;
 
-import org.nrg948.autonomous.Autonomous;
-import org.nrg948.preferences.RobotPreferences;
-import org.nrg948.preferences.RobotPreferencesLayout;
+import com.nrg948.autonomous.Autonomous;
+import com.nrg948.preferences.RobotPreferences;
+import com.nrg948.preferences.RobotPreferencesLayout;
 
 import edu.wpi.first.util.sendable.Sendable;
 import edu.wpi.first.util.sendable.SendableBuilder;
