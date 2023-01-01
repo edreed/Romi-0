@@ -20,10 +20,10 @@ import edu.wpi.first.math.kinematics.DifferentialDriveWheelSpeeds;
 import edu.wpi.first.wpilibj.Encoder;
 import edu.wpi.first.wpilibj.interfaces.Gyro;
 import edu.wpi.first.wpilibj.motorcontrol.Spark;
-import edu.wpi.first.wpilibj.romi.RomiGyro;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants.DigitalInputPort;
 import frc.robot.Constants.PWMPort;
+import frc.robot.sensors.RomiGyro;
 import frc.robot.RomiStatus;
 
 @RobotPreferencesLayout(groupName = "Drivetrain", column = 2, row = 0, width = 2, height = 3)
@@ -72,7 +72,8 @@ public class RomiDrivetrain extends SubsystemBase {
   private final Gyro m_gyro = new RomiGyro();
 
   // Set up the differential drive odometry.
-  private final DifferentialDriveOdometry m_odometry = new DifferentialDriveOdometry(m_gyro.getRotation2d());
+  private final DifferentialDriveOdometry m_odometry = new DifferentialDriveOdometry(
+      m_gyro.getRotation2d(), m_leftEncoder.getDistance(), m_rightEncoder.getDistance());
 
   // Set up kinematics, PID controllers and feedforward.
   private final DifferentialDriveKinematics m_kinematics = new DifferentialDriveKinematics(kWheelTrackWidthMeters);
@@ -177,13 +178,9 @@ public class RomiDrivetrain extends SubsystemBase {
    * @param initialPose The initial position of the robot.
    */
   public void resetPosition(Pose2d initialPose) {
-    m_leftEncoder.reset();
-    m_rightEncoder.reset();
-    m_gyro.reset();
 
-    Rotation2d gyroOffset = m_gyro.getRotation2d();
-
-    m_odometry.resetPosition(initialPose, gyroOffset);
+    m_odometry.resetPosition(
+        m_gyro.getRotation2d(), m_leftEncoder.getDistance(), m_rightEncoder.getDistance(), initialPose);
   }
 
   /**

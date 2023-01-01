@@ -1,6 +1,6 @@
 plugins {
     id "java"
-    id "edu.wpi.first.GradleRIO" version "2022.4.1"
+    id "edu.wpi.first.GradleRIO" version "2023.1.1-beta-7"
 }
 
 sourceCompatibility = JavaVersion.VERSION_11
@@ -23,7 +23,7 @@ repositories {
 }
 
 // Defining my dependencies. In this case, WPILib (+ friends), and vendor libraries.
-// Also defines JUnit 4.
+// Also defines JUnit 5.
 dependencies {
     implementation wpi.java.deps.wpilib()
     implementation wpi.java.vendor.java()
@@ -37,10 +37,16 @@ dependencies {
     simulationRelease wpi.sim.enableRelease()
 
     implementation 'org.reflections:reflections:0.10.2'
+    implementation 'com.nrg948:nrgcommon:2023.1.0-SNAPSHOT'
 
-    implementation 'com.nrg948:nrgcommon:2022.1.0'
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.4.2'
+    testImplementation 'org.junit.jupiter:junit-jupiter-params:5.4.2'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.4.2'
+}
 
-    testImplementation 'junit:junit:4.13.1'
+test {
+    useJUnitPlatform()
+    systemProperty 'junit.jupiter.extensions.autodetection.enabled', 'true'
 }
 
 // Simulation configuration (e.g. environment variables).
@@ -63,3 +69,8 @@ jar {
 
 wpi.java.configureExecutableTasks(jar)
 wpi.java.configureTestTasks(test)
+
+// Configure string concat to always inline compile
+tasks.withType(JavaCompile) {
+    options.compilerArgs.add '-XDstringConcat=inline'
+}

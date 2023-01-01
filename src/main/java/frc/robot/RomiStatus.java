@@ -42,6 +42,7 @@ public class RomiStatus {
     }
   }
 
+  /** The type of battery used to power the Romi. */
   @RobotPreferencesValue
   public static final EnumValue<BatteryType> BATTERY_TYPE = new EnumValue<BatteryType>(
       "Romi", "Battery Type", BatteryType.NiMH);
